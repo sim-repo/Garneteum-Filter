@@ -2,6 +2,12 @@ import UIKit
 
 var catalogTotals: [Int: CatalogTotal] = [:]
 var filterEntities: [Int: FilterEntities] = [:]
+var crossFilters: [Int:FilterModel] = [:]
+var crossSubFilters: [Int:[SubfilterModel]] = [:]
+var crossSubfiltersByFilter: [Int: SubfiltersByFilter?] = [:]
+var crossSubfiltersByFilterFlat: SubfiltersByFilter = [:]
+var crossUuidByFilter: [Int: String] = [:]
+
 
 public class CatalogTotal {
     
@@ -20,7 +26,9 @@ public class CatalogTotal {
     }
 }
 
+
 class FilterEntities {
+    
     var categoryId: Int?
     var filters:[FilterModel]?
     var subFilters:[SubfilterModel]?
@@ -66,9 +74,9 @@ class FilterEntities {
 }
 
 
-public class GlobalCache {
+public class GlobalCacheOperation {
     
-    static func getCatalogTotal(categoryId: Int) -> CatalogTotal?{
+    func getCatalogTotal(categoryId: Int) -> CatalogTotal?{
         return catalogTotals[categoryId]
     }
     
@@ -84,17 +92,19 @@ public class GlobalCache {
         catalogTotals[categoryId] = catalogTotal
     }
     
-    static func getFilterEntities(categoryId: Int) -> FilterEntities? {
-        return filterEntities[categoryId]
-    }
+//    func getFilterEntities(categoryId: Int) -> FilterEntities? {
+//        return filterEntities[categoryId]
+//    }
     
-    static func setFilterEntities(categoryId: Int,
+    func setChunk123(categoryId: Int,
                                   filters: [FilterModel]? = nil,
                                   subFilters: [SubfilterModel]? = nil,
                                   subfiltersByFilter: SubfiltersByFilter? = nil,
                                   subfiltersByItem: SubfiltersByItem? = nil,
                                   itemsBySubfilter: ItemsBySubfilter? = nil,
-                                  priceByItemId: PriceByItemId? = nil){
+                                  priceByItemId: PriceByItemId? = nil,
+                                  printComment: String
+                                  ){
         
         guard categoryId != 0 else { return }
         
@@ -122,29 +132,88 @@ public class GlobalCache {
                            subfiltersByItem: subfiltersByItem,
                            itemsBySubfilter: itemsBySubfilter,
                            priceByItemId: priceByItemId)
-        
-        
-        
+        print(printComment)
     }
     
-    static func getChunk1(categoryId: Int) -> [FilterModel]? {
+    
+    func setChunk4(_ uuid_: String?,
+                                       _ filterId: FilterId,
+                                       _ subFilters: [SubfilterModel]? = nil,
+                                       //_ subfiltersByFilter: SubfiltersByFilter? = nil,
+                                       printComment: String){
+        
+        guard let uuid = uuid_
+        else { return }
+        
+        crossUuidByFilter[filterId] = uuid
+        crossSubFilters[filterId] = subFilters
+        
+        var tmp: SubfiltersByFilter = [:]
+        tmp[filterId] = []
+        if let ids = subFilters?.compactMap({$0.id}) {
+            tmp[filterId]?.append(contentsOf: ids)
+        }
+        crossSubfiltersByFilter[filterId] = tmp
+        
+        let arr = crossSubfiltersByFilter.filter({$0.key == filterId}).map{$0.1}
+        for elem in arr {
+            guard let el = elem else {continue}
+            for (k,v) in el {
+                crossSubfiltersByFilterFlat[k] = v
+            }
+        }
+
+        print(printComment)
+    }
+    
+    
+    
+    func getChunk1(categoryId: Int) -> [FilterModel]? {
+        
         guard let entity = filterEntities[categoryId] else { return nil }
+        if let filters = entity.filters {
+            for filter in filters {
+                filter.enabled = true
+            }
+        }
         return entity.filters
     }
     
-    static func getChunk2(categoryId: Int) -> ([SubfilterModel]?,  SubfiltersByFilter?)? {
+    
+    func getChunk2(categoryId: Int) -> [SubfilterModel]? {
         guard let entity = filterEntities[categoryId] else { return nil }
-        return (entity.subFilters, entity.subfiltersByFilter)
+        var res1: [SubfilterModel]?
+        res1 = crossSubFilters.map({$0.1}).flatMap({$0})
+        if let subfilters = entity.subFilters {
+            if let f = res1 {
+                res1 = f + subfilters
+            } else {
+                res1 = subfilters
+            }
+        }
+        return res1
+//        var res2: SubfiltersByFilter?
+//        res2 = crossSubfiltersByFilterFlat
+//
+//        if let subfiltersByFilter = entity.subfiltersByFilter {
+//            if let f = res2 {
+//                res2 = f + subfiltersByFilter
+//            } else {
+//                res2 = subfiltersByFilter
+//            }
+//        }
+//        return (res1, res2)
     }
     
-    static func getChunk3(categoryId: Int) -> (SubfiltersByItem?,  ItemsBySubfilter?, PriceByItemId?)? {
+    
+    func getChunk3(categoryId: Int) -> (SubfiltersByItem?,  ItemsBySubfilter?, PriceByItemId?)? {
         guard let entity = filterEntities[categoryId] else { return nil }
         return (entity.subfiltersByItem, entity.itemsBySubfilter, entity.priceByItemId)
     }
     
-    static func dealloc(){
-        catalogTotals.removeAll()
-        filterEntities.removeAll()
-    }
+//    private func dealloc(){
+//        catalogTotals.removeAll()
+//        filterEntities.removeAll()
+//    }
     
 }

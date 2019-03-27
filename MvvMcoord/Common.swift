@@ -1,12 +1,14 @@
 import UIKit
 
 
+typealias CategoryId = Int
 typealias CountItems = [Int:Int]
 typealias FilterIds = [Int?]
 typealias SubFilterIds = [Int?]
 typealias Applied = Set<Int>
 typealias Selected = Set<Int>
 typealias FilterId = Int
+typealias SubFilterId = Int
 typealias ItemIds = [Int]
 typealias ApplyingByFilter = [Int:[Int]]
 typealias Filters = [Int:FilterModel]
@@ -23,8 +25,7 @@ typealias EnabledSubfilters = [Int:Bool]
 typealias ItemsTotal = Int
 typealias MinPrice = CGFloat
 typealias MaxPrice = CGFloat
-
-
+typealias UuidByFilter = [Int:String]
 
 extension Date {
     func currentTimeMillis() -> Int64! {
@@ -45,4 +46,13 @@ func getNetworkService() -> NetworkFacadeProtocol {
     default:
         return LightClientFCF.shared
     }
+}
+
+func getDataLoadService() -> DataLoadFacadeProtocol {
+    return DataLoadService.shared
+}
+
+
+public func +<K, V>(left: [K:V], right: [K:V]) -> [K:V] {
+    return left.merging(right) { $1 }
 }

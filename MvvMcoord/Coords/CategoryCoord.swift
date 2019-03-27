@@ -4,7 +4,7 @@ import RxSwift
 class CategoryCoord: BaseCoord<CoordRetEnum> {
     
     private var rootViewController: UIViewController?
-    private var parentBaseId: Int
+    private var parentBaseId: CategoryId
 
     private var viewController: CategoryVC!
     
@@ -32,23 +32,27 @@ class CategoryCoord: BaseCoord<CoordRetEnum> {
             .subscribe()
             .disposed(by: self.disposeBag)
         
-      //  uploadFemaleTshirts()
         
         vm.outShowCatalog
             .flatMap{[weak self] baseId -> Observable<CoordRetEnum> in
                 guard let `self` = self else { return .empty() }
                 
+                
+                getDataLoadService().screenHandle(eventString: "ShowCatalog", baseId)
+                
                 // >>>>
                // let applyLogic: FilterApplyLogic = FilterApplyLogic.shared
                // applyLogic.dealloc()
-                let networkService = getNetworkService()
-                //GlobalCache.dealloc()
-                networkService.requestPreloadFiltersChunk1(categoryId: baseId)
-                networkService.requestPreloadSubFiltersChunk2(categoryId: baseId)
-                networkService.requestPreloadItemsChunk3(categoryId: baseId)
+//              let networkService = getNetworkService()
+//                //GlobalCache.dealloc()
+//              networkService.reqPreloadFiltersChunk1(categoryId: baseId)
+//             // networkService.reqPreloadSubFiltersChunk2(categoryId: baseId)
+//              networkService.reqPreloadItemsChunk3(categoryId: baseId)
+              
+               // networkService.reqPreloadSinglesChunk4(filterId: 2, uuid: UUID().uuidString)
                // networkService.requestPreloadFullFilterEntities(categoryId: baseId)
                 
-                return self.showCatalog(on: self.viewController, baseId: baseId)
+              return self.showCatalog(on: self.viewController, baseId: baseId)
             }
             .subscribe()
             .disposed(by: self.disposeBag)

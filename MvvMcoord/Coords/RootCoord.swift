@@ -4,7 +4,7 @@ import RxSwift
 class RootCoord: BaseCoord<CoordRetEnum> {
     
     private var window: UIWindow?
-    private var parentBaseId: Int
+    private var parentBaseId: CategoryId
     
     
     init(window: UIWindow? = nil, parentBaseId: Int){
@@ -24,10 +24,11 @@ class RootCoord: BaseCoord<CoordRetEnum> {
         
         viewController.viewModel = vm
         
-        
-    //   let networkService = getNetworkService()
-    //   networkService.loadCache(categoryId: 10001)
-        
+//         let creater = FirebaseCreator.shared
+//         creater.run()
+//
+        getDataLoadService().screenHandle(eventString: "RootCoord")
+
         vm.outShowSubcategory
             .subscribe(
                 onNext: {[weak self] baseId in
@@ -50,7 +51,7 @@ class RootCoord: BaseCoord<CoordRetEnum> {
     }
     
     
-    private func showSubcategory(on rootViewController: UIViewController, parentBaseId: Int) -> Observable<CoordRetEnum>{
+    private func showSubcategory(on rootViewController: UIViewController, parentBaseId: CategoryId) -> Observable<CoordRetEnum>{
         let nextCoord = CategoryCoord(rootViewController: rootViewController, parentBaseId: parentBaseId)
         return coordinate(coord: nextCoord)
     }

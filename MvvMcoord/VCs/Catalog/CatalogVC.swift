@@ -19,6 +19,7 @@ class CatalogVC: UIViewController {
     private var cellSpace: CGFloat = 0.0
     private var lineSpace: CGFloat = 0.0
     private var planButtonImage = ""
+    private var timer: Timer?
     internal let waitContainer: UIView = UIView()
     internal let waitActivityView = UIActivityIndicatorView(style: .whiteLarge)
     
@@ -262,6 +263,7 @@ extension CatalogVC {
                 if res.1 == true {
                     self.waitContainer.alpha = 1.0
                     self.collectionView.isHidden = true
+                    self.timer = Timer.scheduledTimer(timeInterval: 5, target: self, selector: #selector(self.internalWaitControl), userInfo: nil, repeats: false)
                     DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(2)){
                         self.startWait()
                     }
@@ -284,5 +286,21 @@ extension CatalogVC {
         collectionView.isHidden = false
         waitContainer.isHidden = true
         waitActivityView.stopAnimating()
+    }
+    
+    private func showAlert(text: String){
+        let alert = UIAlertController(title: "Ошибка", message: text, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+        self.present(alert, animated: true, completion: nil)
+    }
+    
+    @objc func internalWaitControl() {
+        if waitActivityView.isAnimating {
+            if viewIfLoaded?.window != nil {
+                showAlert(text: "Ошибка сетевого запроса.")
+            }
+            timer?.invalidate()
+            stopWait()
+        }
     }
 }

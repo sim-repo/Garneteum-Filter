@@ -35,7 +35,7 @@ class CatalogVM : BaseVM {
     var outCloseVC = PublishSubject<Void>()
     var outReloadCatalogVC = BehaviorSubject<Bool>(value: false)
     var outFetchComplete = PublishSubject<[IndexPath]?>()
-    
+    var currEnteredFilterId = 0
     
     // Filters
     internal var filters: [Int:FilterModel] = [:]
@@ -74,9 +74,9 @@ class CatalogVM : BaseVM {
     
     // MARK: --------------FilterActionDelegate properties--------------
     internal var inApplyFromFilterEvent = PublishSubject<Void>()
-    internal var inApplyFromSubFilterEvent = PublishSubject<Int>()
+    internal var inApplyFromSubFilterEvent = PublishSubject<FilterId>()
     internal var inApplyByPricesEvent = PublishSubject<Void>()
-    internal var inRemoveFilterEvent = PublishSubject<Int>()
+    internal var inRemoveFilterEvent = PublishSubject<FilterId>()
     internal var inSelectSubFilterEvent = PublishSubject<(Int, Bool)>()
     internal var inCleanUpFromFilterEvent = PublishSubject<Void>()
     internal var inCleanUpFromSubFilterEvent = PublishSubject<Int>()
@@ -94,8 +94,6 @@ class CatalogVM : BaseVM {
     internal var outShowWarning = PublishSubject<Void>()
     internal var outReloadSubFilterVCEvent = PublishSubject<Void>()
     
-    
-    
     internal init(categoryId: Int, fetchLimit: Int, currentPage: Int, totalPages: Int, totalItems: Int){
         self.categoryId = categoryId
         self.fetchLimit = fetchLimit
@@ -103,16 +101,21 @@ class CatalogVM : BaseVM {
         self.totalPages = totalPages
         self.totalItems = totalItems
         super.init()
-    
+        wait().onNext((.prefetchCatalog, true))
         emitStartEvent()
-        handleStartEvent()
         handlePrefetchEvent()
+        handleDelegate()
+        handleStartEvent()
         bindUserActivities()
         
         CatalogModel.localTitle(categoryId: categoryId)
             .bind(to: outTitle)
             .disposed(by: bag)
+        
+        DataLoadService.shared.screenHandle(eventString: "CatalogVM")
     }
+    
+    
     
     
     public func realloc(){
@@ -145,6 +148,7 @@ class CatalogVM : BaseVM {
         outMidTotal.onCompleted()
         outShowWarning.onCompleted()
         outReloadSubFilterVCEvent.onCompleted()
+        getNetworkService().resetNetworkBehaviorSubjects()
     }
     
     // MARK: -------------- Prefetching --------------
@@ -164,17 +168,23 @@ class CatalogVM : BaseVM {
 
     
     private func emitStartEvent(){
-        getNetworkService().requestCatalogStart(categoryId: categoryId)
+        getDataLoadService().screenHandle(eventString: "StartCatalogFetch", categoryId)
     }
    
     private func handleStartEvent(){
-        getNetworkService().getCatalogTotalEvent()
-            .filter({$0.0.count > 0})
+        getDataLoadService().getCatalogTotalEvent()
+            .filter({[weak self] res in
+                     res.0 == self?.categoryId &&
+                     res.1.count > 0})
             .subscribe(onNext: { [weak self] res in
-                self?.fullCatalogItemIds = res.0
-                self?.setupFetch(itemsIds: res.0, fetchLimit: res.1)
-                self?.rangePrice.setupRangePrice(minPrice: res.2, maxPrice: res.3)
-                self?.outReloadCatalogVC.onNext(true)
+                guard let `self` = self else { return }
+                self.fullCatalogItemIds = res.1
+                self.setupFetch(itemsIds: res.1, fetchLimit: res.2)
+                self.rangePrice.setupRangePrice(minPrice: res.3, maxPrice: res.4)
+                if self.fullCatalogItemIds.count < res.2 {
+                    self.emitPrefetchEvent()
+                }
+                self.outReloadCatalogVC.onNext(true)
             })
             .disposed(by: bag)
     }
@@ -192,9 +202,10 @@ class CatalogVM : BaseVM {
         
         if itemIds.count >= from {
             let nextItemIds = itemIds[from...to]
-            getNetworkService().requestCatalogModel(itemIds: Array(nextItemIds))
+            getDataLoadService().screenHandle(eventString: "Prefetch", categoryId, Array(nextItemIds))
         }
     }
+    
     
     private func handlePrefetchEvent(){
         inPrefetchEvent
@@ -404,6 +415,7 @@ class CatalogVM : BaseVM {
             tmp.removeAll()
             tmp2.removeAll()
             guard let ids = subfiltersByFilter[filter.id]  else { continue }
+            
             
             for id in ids {
                 guard let subf = subFilters[id],

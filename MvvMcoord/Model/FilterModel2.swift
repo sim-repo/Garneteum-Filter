@@ -14,58 +14,71 @@ protocol ModelProtocol: class {
 }
 
 public class FilterModel : ModelProtocol {
-    
-    var id = 0
+    var id: FilterId = 0
     var title: String = ""
-    var categoryId = 0
+    var categoryId: CategoryId = 0
     var filterEnum: FilterEnum = .select
     var enabled = true
+    var cross = false
+    var uuid: String = ""
     
-    init(id: Int, title: String, categoryId: Int, filterEnum: FilterEnum = .select){
+    convenience init(id: Int, categoryId: Int, title: String, cross: Bool, filterEnum: FilterEnum) {
+        self.init(json: nil)
         self.id = id
-        self.title = title
         self.categoryId = categoryId
+        self.title = title
         self.filterEnum = filterEnum
-        
-        FilterApplyLogic.shared.addFilter(id: id, filter: self)
+        self.cross = cross
     }
+    
     
     required init(json: JSON?) {
         if let json = json {
             self.id = json["id"].intValue
             self.title = json["title"].stringValue
-            self.categoryId = json["categoryId"].intValue
+            self.cross = json["cross"].boolValue
+            if !self.cross {
+                self.categoryId = json["categoryId"].intValue
+            }
             self.filterEnum = FilterEnum(rawValue: json["filterEnum"].stringValue)!
             self.enabled = json["enabled"].boolValue
+            self.uuid = json["uuid"].stringValue
         }
     }
 }
 
 
 
-public class SubfilterModel : ModelProtocol{
-    var filterId = 0
-    var id = 0
-    var categoryId = 0
+public class SubfilterModel : ModelProtocol {
+    var id: SubFilterId = 0
+    var filterId: FilterId = 0
+    var categoryId: CategoryId = 0
     var title: String = ""
     var enabled = true
     var sectionHeader = ""
     var countItems = 0
+    var cross = false
     
-    init(id: Int, categoryId: Int, filterId: Int, title: String, sectionHeader: String = "") {
+
+    convenience init(id: Int, filterId: Int, categoryId: Int, title: String, sectionHeader: String = "", cross: Bool, countItems: Int) {
+        self.init(json: nil)
         self.filterId = filterId
         self.id = id
         self.categoryId = categoryId
         self.title = title
         self.sectionHeader = sectionHeader
-        FilterApplyLogic.shared.addSubF(id: id, subFilter: self)
+        self.cross = cross
+        self.countItems = countItems
     }
     
     required init(json: JSON?) {
         if let json = json {
             self.id = json["id"].intValue
             self.filterId = json["filterId"].intValue
-            self.categoryId = json["categoryId"].intValue
+            self.cross = json["cross"].boolValue
+            if !cross {
+                self.categoryId = json["categoryId"].intValue
+            }
             self.title = json["title"].stringValue
             self.enabled = json["enabled"].boolValue
             self.sectionHeader = json["sectionHeader"].stringValue

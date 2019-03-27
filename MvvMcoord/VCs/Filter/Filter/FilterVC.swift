@@ -151,14 +151,6 @@ class FilterVC: UIViewController {
     }
     
     
-    
-    private func showApplyWarning(){
-        let alert = UIAlertController(title: "Ошибка", message: "В указанных фильтрах отсутствуют товары. \n Необходимо изменить фильтры.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
-        self.present(alert, animated: true, completion: nil)
-    }
-    
-    
     private func bindApply(){
         
         applyView.applyButton.rx.tap
@@ -175,7 +167,7 @@ class FilterVC: UIViewController {
         
         viewModel.filterActionDelegate?.showApplyWarning()
             .subscribe{[weak self] _ in
-                self?.showApplyWarning()
+                self?.showAlert(text: "В указанных фильтрах отсутствуют товары. \n Необходимо изменить фильтры.")
             }
             .disposed(by: bag)
         
@@ -247,6 +239,13 @@ class FilterVC: UIViewController {
 // Waiting Indicator
 extension FilterVC {
     
+    private func showAlert(text: String){
+        let alert = UIAlertController(title: "Ошибка", message: text, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+        self.present(alert, animated: true, completion: nil)
+    }
+    
+    
     private func bindWaitEvent(){
         waitContainer.frame = CGRect(x: view.center.x, y: view.center.y, width: 80, height: 80)
         waitContainer.backgroundColor = .lightGray
@@ -262,17 +261,25 @@ extension FilterVC {
             .filter({[.enterFilter, .applySubFilter, .removeFilter].contains($0.0)})
             .takeWhile({$0.1 == true})
             .subscribe(onNext: {[weak self] res in
-                DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(2)){
-                    guard let `self` = self else {return}
-                    self.startWait()
-                }
-                },
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(2)){
+                                        guard let `self` = self else {return}
+                                        Timer.scheduledTimer(timeInterval: 3, target: self, selector: #selector(self.internalWaitControl), userInfo: nil, repeats: false)
+                                        self.startWait()
+                                    }
+                        },
                        onCompleted: {
-                        self.stopWait()
-            })
+                            self.stopWait()
+                        }
+            )
             .disposed(by: bag)
     }
     
+    @objc func internalWaitControl() {
+        if waitActivityView.isAnimating {
+            showAlert(text: "Ошибка сетевого запроса.")
+            stopWait()
+        }
+    }
     
     private func startWait() {
         guard waitContainer.alpha == 1.0 else { return }

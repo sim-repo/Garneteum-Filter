@@ -4,6 +4,7 @@ import Foundation
 
 class TestData {
 
+    /*
     static func loadFilters() -> [FilterModel] {
         var tmp: [FilterModel] = []
         
@@ -281,5 +282,6 @@ class TestData {
 //        }
         return tmp
     }
+ */
     
 }

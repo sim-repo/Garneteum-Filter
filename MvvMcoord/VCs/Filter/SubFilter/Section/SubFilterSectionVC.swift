@@ -124,16 +124,18 @@ extension SubFilterSectionVC {
         view.addSubview(waitContainer)
         
         viewModel.filterActionDelegate?.wait()
+  
             .filter({[.enterSubFilter].contains($0.0)})
             .takeWhile({$0.1 == true})
-            .subscribe(onNext: {[weak self] res in
-                guard let `self` = self else {return}
-                print("start wait")
-                self.startWait()
-                },
-                       onCompleted: {
-                        self.stopWait()
-            })
+            .subscribe(
+                onNext: {[weak self] res in
+                    guard let `self` = self else {return}
+                    print("start wait")
+                    self.startWait()
+                    },
+                onCompleted: {
+                    self.stopWait()
+                })
             .disposed(by: bag)
     }
     

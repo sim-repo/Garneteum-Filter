@@ -39,58 +39,58 @@ class LightClientFCF : NetworkFacadeBase {
     
     
     
-    override func requestCatalogStart(categoryId: Int) {
-        networkingFunc = {
-            functions.httpsCallable("catalogTotal").call(["useCache":true,
-                                                          "categoryId":categoryId
-            ]){[weak self] (result, error) in
-                guard let `self` = self else { return }
-                
-                if let error = error as NSError? {
-                    self.firebaseHandleErr(error: error)
-                    return
-                }
-                let fetchLimit_ = ParsingHelper.parseJsonVal(type: Int.self, result: result, key: "fetchLimit")
-                
-                let itemIds: ItemIds = ParsingHelper.parseJsonArr(result: result, key: "itemIds")
-                let minPrice_ = ParsingHelper.parseJsonVal(type: Int.self, result: result, key: "minPrice")
-                let maxPrice_ = ParsingHelper.parseJsonVal(type: Int.self, result: result, key: "maxPrice")
-                
-                
-                guard let fetchLimit = fetchLimit_,
-                    let minPrice = minPrice_,
-                    let maxPrice = maxPrice_
-                    else { return self.firebaseHandleErr(error: NSError(domain: FunctionsErrorDomain, code: 1, userInfo: ["Parse Int":0])  )}
-                
-                self.fireCatalogTotal(itemIds, fetchLimit, CGFloat(minPrice), CGFloat(maxPrice))
-            }
-        }
-        runRequest(networkFunction: networkingFunc)
-    }
+//    override func reqCatalogStart(categoryId: CategoryId) {
+//        networkingFunc = {
+//            functions.httpsCallable("catalogTotal").call(["useCache":true,
+//                                                          "categoryId":categoryId
+//            ]){[weak self] (result, error) in
+//                guard let `self` = self else { return }
+//
+//                if let error = error as NSError? {
+//                    self.firebaseHandleErr(error: error)
+//                    return
+//                }
+//                let fetchLimit_ = ParsingHelper.parseJsonVal(type: Int.self, result: result, key: "fetchLimit")
+//
+//                let itemIds: ItemIds = ParsingHelper.parseJsonArr(result: result, key: "itemIds")
+//                let minPrice_ = ParsingHelper.parseJsonVal(type: Int.self, result: result, key: "minPrice")
+//                let maxPrice_ = ParsingHelper.parseJsonVal(type: Int.self, result: result, key: "maxPrice")
+//
+//
+//                guard let fetchLimit = fetchLimit_,
+//                    let minPrice = minPrice_,
+//                    let maxPrice = maxPrice_
+//                    else { return self.firebaseHandleErr(error: NSError(domain: FunctionsErrorDomain, code: 1, userInfo: ["Parse Int":0])  )}
+//
+//                self.fireCatalogTotal(categoryId, itemIds, fetchLimit, CGFloat(minPrice), CGFloat(maxPrice))
+//            }
+//        }
+//        runRequest(networkFunction: networkingFunc)
+//    }
+//
+//    
+//    override func reqCatalogModel(itemIds: ItemIds) {
+//        networkingFunc = {
+//            functions.httpsCallable("catalogEntities").call([ "useCache": true,
+//                                                              "itemsIds": itemIds
+//            ]){[weak self] (result, error) in
+//                guard let `self` = self else { return }
+//                
+//                if let error = error as NSError? {
+//                    self.firebaseHandleErr(error: error)
+//                    return
+//                }
+//                let arr:[CatalogModel] = ParsingHelper.parseCatalogModel(result: result, key: "items")
+//                self.fireCatalogModel(catalogModel: arr)
+//            }
+//        }
+//        runRequest(networkFunction: networkingFunc)
+//    }
     
     
-    override func requestCatalogModel(itemIds: ItemIds) {
-        networkingFunc = {
-            functions.httpsCallable("catalogEntities").call([ "useCache": true,
-                                                              "itemsIds": itemIds
-            ]){[weak self] (result, error) in
-                guard let `self` = self else { return }
-                
-                if let error = error as NSError? {
-                    self.firebaseHandleErr(error: error)
-                    return
-                }
-                let arr:[CatalogModel] = ParsingHelper.parseJsonObjArr(result: result, key: "items")
-                self.fireCatalogModel(catalogModel: arr)
-            }
-        }
-        runRequest(networkFunction: networkingFunc)
-    }
+    override func reqPreloadFullFilterEntities(categoryId: CategoryId) {}
     
-    
-    override func requestPreloadFullFilterEntities(categoryId: Int) {}
-    
-    override func requestFullFilterEntities(categoryId: Int){
+    override func reqFullFilterEntities(categoryId: CategoryId){
         networkingFunc = {
             functions.httpsCallable("fullFilterEntities").call(["useCache":true
             ]) {[weak self] (result, error) in
@@ -110,40 +110,40 @@ class LightClientFCF : NetworkFacadeBase {
     
     
     
-    override func requestEnterSubFilter(categoryId: Int, filterId: FilterId, appliedSubFilters: Applied, rangePrice: RangePrice){
-        networkingFunc = {
-            functions.httpsCallable("currSubFilterIds").call(["useCache":true,
-                                                              "categoryId": categoryId,
-                                                              "filterId":filterId,
-                                                              "appliedSubFilters":Array(appliedSubFilters),
-                                                              "userMinPrice":rangePrice.userMinPrice,
-                                                              "userMaxPrice":rangePrice.userMaxPrice,
-                                                              "tipMinPrice":rangePrice.tipMinPrice,
-                                                              "tipMaxPrice":rangePrice.tipMaxPrice
-            ]) {[weak self] (result, error) in
-                guard let `self` = self else { return }
-                
-                
-                if let error = error as NSError? {
-                    self.firebaseHandleErr(error: error)
-                    return
-                }
-                let filterId_ = ParsingHelper.parseJsonVal(type: Int.self, result: result, key: "filterId")
-                guard let filterId = filterId_
-                    else { return self.firebaseHandleErr(error: NSError(domain: "parse INT error", code: 0, userInfo: [:]))}
-                
-                let subfiltersIds:SubFilterIds = ParsingHelper.parseJsonArr(result: result, key: "subFiltersIds")
-                let applied:Applied = Set(ParsingHelper.parseJsonArr(result: result, key: "appliedSubFiltersIds"))
-                let countsItems: CountItems = ParsingHelper.parseJsonDict(result: result, key: "countItemsBySubfilter")
-                self.fireEnterSubFilter(filterId, subfiltersIds, applied, countsItems)
-            }
-        }
-        runRequest(networkFunction: networkingFunc)
+    override func reqEnterSubFilter(filterId: FilterId, appliedSubFilters: Applied, rangePrice: RangePrice){
+//        networkingFunc = {
+//            functions.httpsCallable("currSubFilterIds").call(["useCache":true,
+//                                                              "categoryId": categoryId,
+//                                                              "filterId":filterId,
+//                                                              "appliedSubFilters":Array(appliedSubFilters),
+//                                                              "userMinPrice":rangePrice.userMinPrice,
+//                                                              "userMaxPrice":rangePrice.userMaxPrice,
+//                                                              "tipMinPrice":rangePrice.tipMinPrice,
+//                                                              "tipMaxPrice":rangePrice.tipMaxPrice
+//            ]) {[weak self] (result, error) in
+//                guard let `self` = self else { return }
+//
+//
+//                if let error = error as NSError? {
+//                    self.firebaseHandleErr(error: error)
+//                    return
+//                }
+//                let filterId_ = ParsingHelper.parseJsonVal(type: Int.self, result: result, key: "filterId")
+//                guard let filterId = filterId_
+//                    else { return self.firebaseHandleErr(error: NSError(domain: "parse INT error", code: 0, userInfo: [:]))}
+//
+//                let subfiltersIds:SubFilterIds = ParsingHelper.parseJsonArr(result: result, key: "subFiltersIds")
+//                let applied:Applied = Set(ParsingHelper.parseJsonArr(result: result, key: "appliedSubFiltersIds"))
+//                let countsItems: CountItems = ParsingHelper.parseJsonDict(result: result, key: "countItemsBySubfilter")
+//                self.fireEnterSubFilter(filterId, subfiltersIds, applied, countsItems)
+//            }
+//        }
+//        runRequest(networkFunction: networkingFunc)
     }
     
     
     
-    override func requestApplyFromFilter(categoryId: Int, appliedSubFilters: Applied, selectedSubFilters: Selected, rangePrice: RangePrice){
+    override func reqApplyFromFilter(categoryId: CategoryId, appliedSubFilters: Applied, selectedSubFilters: Selected, rangePrice: RangePrice){
         networkingFunc = {
             functions.httpsCallable("applyFromFilterNow").call(["useCache":true,
                                                                 "categoryId":categoryId,
@@ -175,7 +175,7 @@ class LightClientFCF : NetworkFacadeBase {
     }
     
     
-    override func requestApplyFromSubFilter(categoryId: Int, filterId: FilterId, appliedSubFilters: Applied, selectedSubFilters: Selected, rangePrice: RangePrice){
+    override func reqApplyFromSubFilter(categoryId: CategoryId, filterId: FilterId, appliedSubFilters: Applied, selectedSubFilters: Selected, rangePrice: RangePrice){
         
         networkingFunc = {
             functions.httpsCallable("applyFromSubFilterNow").call([ "useCache":true,
@@ -224,7 +224,7 @@ class LightClientFCF : NetworkFacadeBase {
     }
     
     
-    override func requestApplyByPrices(categoryId: Int, rangePrice: RangePrice){
+    override func reqApplyByPrices(categoryId: CategoryId, rangePrice: RangePrice){
         networkingFunc = {
             functions.httpsCallable("applyByPrices").call(["useCache":true,
                                                            "categoryId":categoryId,
@@ -249,7 +249,7 @@ class LightClientFCF : NetworkFacadeBase {
     }
     
     
-    override func requestRemoveFilter(categoryId: Int, filterId: FilterId, appliedSubFilters: Applied, selectedSubFilters: Selected, rangePrice: RangePrice){
+    override func reqRemoveFilter(categoryId: CategoryId, filterId: FilterId, appliedSubFilters: Applied, selectedSubFilters: Selected, rangePrice: RangePrice){
         networkingFunc = {
             functions.httpsCallable("apiRemoveFilter").call(["useCache":true,
                                                             "filterId":filterId,
@@ -299,7 +299,7 @@ class LightClientFCF : NetworkFacadeBase {
     
     
     
-    override func requestMidTotal(categoryId: Int, appliedSubFilters: Applied, selectedSubFilters: Selected, rangePrice: RangePrice) {
+    override func reqMidTotal(categoryId: CategoryId, appliedSubFilters: Applied, selectedSubFilters: Selected, rangePrice: RangePrice) {
         networkingFunc = {
             functions.httpsCallable("doCalcMidTotal").call(["useCache":true,
                                                             "selectedSubFilters":Array(selectedSubFilters),

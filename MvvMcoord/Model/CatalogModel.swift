@@ -3,10 +3,10 @@ import RxSwift
 import RxDataSources
 import SwiftyJSON
 
-public class CatalogModel : ModelProtocol{
+public class CatalogModel  {
     
     let id: Int
-    let categoryId: Int
+    let categoryId: CategoryId
     let name: String
     let thumbnail: String
     let stars: NSMutableAttributedString
@@ -16,7 +16,7 @@ public class CatalogModel : ModelProtocol{
     let discount: Int
     
     
-    init(id: Int, categoryId: Int, name: String, thumbnail: String, stars: Int, newPrice: NSNumber, oldPrice: NSNumber, votes: Int, discount: Int) {
+    init(id: Int, categoryId: CategoryId, name: String, thumbnail: String, stars: Int, newPrice: NSNumber, oldPrice: NSNumber, votes: Int, discount: Int) {
         self.id = id
         self.categoryId = categoryId
         self.name = name
@@ -28,6 +28,18 @@ public class CatalogModel : ModelProtocol{
         self.discount = discount
     }
     
+    convenience init(catalogModel1: CatalogModel1) {
+        self.init(id: catalogModel1.id,
+                  categoryId: catalogModel1.categoryId,
+                  name: catalogModel1.name,
+                  thumbnail: catalogModel1.thumbnail,
+                  stars: catalogModel1.stars,
+                  newPrice: catalogModel1.newPrice as NSNumber,
+                  oldPrice: catalogModel1.oldPrice as NSNumber,
+                  votes: catalogModel1.votes,
+                  discount: catalogModel1.discount)
+    }
+
     required init(json: JSON?) {
         let json = json!
             self.id = json["id"].intValue
