@@ -5,7 +5,7 @@ import CoreData
 
 protocol DataLoadFacadeProtocol {
     
-    func screenHandle(eventString: String, _ categoryId: CategoryId?, _ itemsIds: ItemIds?)
+    func screenHandle(eventString: String, _ categoryId: CategoryId, _ itemsIds: Set<Int>)
     func screenHandle(eventString: String, _ categoryId: CategoryId)
     func screenHandle(eventString: String)
     
@@ -105,14 +105,11 @@ class DataLoadService : DataLoadFacadeProtocol {
     }
     
     
-    func screenHandle(eventString: String, _ categoryId: CategoryId? = 0, _ itemsIds: ItemIds? = nil) {
+    func screenHandle(eventString: String, _ categoryId: CategoryId, _ itemsIds: Set<Int>) {
         switch eventString {
             
         case "Prefetch":
-            guard let itemsIds_ = itemsIds,
-                  let categoryId_ = categoryId
-            else { return }
-            self.doEmitPrefetch(categoryId: categoryId_, itemIds: itemsIds_)
+            self.doEmitPrefetch(categoryId: categoryId, itemIds: itemsIds)
             
         default:
             fatalError("screenHandle: no handlers found for value '\(eventString)'")

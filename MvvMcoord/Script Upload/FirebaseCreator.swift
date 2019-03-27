@@ -186,7 +186,7 @@ class FirebaseCreator {
         uploadCrossFilters()
         lastFilterId = ft.getFirstFilterId()
         ЖенскиеПовседневныеПлатья()
-     //   ЖенскиеБрюки()
+        ЖенскиеБрюки()
       //  ЖенскиеРубашки()
     }
 }

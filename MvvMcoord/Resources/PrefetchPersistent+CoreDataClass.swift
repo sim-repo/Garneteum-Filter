@@ -4,7 +4,7 @@ import CoreData
 
 public class PrefetchPersistent: NSManagedObject {
     
-    static func getModels(prefetchPersistents: [PrefetchPersistent]) -> [CatalogModel] {
+    static func getModels(prefetchPersistents: Set<PrefetchPersistent>) -> [CatalogModel] {
         var models = [CatalogModel]()
         for element in prefetchPersistents {
             let model = CatalogModel(id: Int(element.itemId),

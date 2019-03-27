@@ -202,7 +202,7 @@ class CatalogVM : BaseVM {
         
         if itemIds.count >= from {
             let nextItemIds = itemIds[from...to]
-            getDataLoadService().screenHandle(eventString: "Prefetch", categoryId, Array(nextItemIds))
+            getDataLoadService().screenHandle(eventString: "Prefetch", categoryId, Set(nextItemIds))
         }
     }
     

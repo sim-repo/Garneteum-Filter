@@ -20,18 +20,19 @@ extension DataLoadService {
     }
     
     
-    internal func doEmitPrefetch(categoryId: CategoryId, itemIds: ItemIds){
-        let res1_ = dbLoadPrefetch(itemIds: itemIds)
-        guard let res1 = res1_,
-            res1.count == itemIds.count
+    internal func doEmitPrefetch(categoryId: CategoryId, itemIds: Set<Int>){
+        let res = dbLoadPrefetch(itemIds: itemIds)
+        guard res.count >= itemIds.count
             else {
                 let completion: (([CatalogModel1])->Void)? = { [weak self] catalogModels in
                     self?.dbSavePrefetch(categoryId, catalogModels)
                 }
-                networkService.reqPrefetch(itemIds: itemIds, completion: completion)
+                let dbRemIds = Set(res.compactMap({Int($0.itemId)}))
+                let remItemIds = Set(itemIds).subtracting(dbRemIds)
+                networkService.reqPrefetch(itemIds: Array(remItemIds), completion: completion)
                 return
         }
-        let catalogModels: [CatalogModel] = PrefetchPersistent.getModels(prefetchPersistents: res1)
+        let catalogModels: [CatalogModel] = PrefetchPersistent.getModels(prefetchPersistents: res)
         firePrefetch(catalogModels)
     }
     
@@ -67,8 +68,8 @@ extension DataLoadService {
     }
     
     
-    internal func dbLoadPrefetch(itemIds: ItemIds) -> [PrefetchPersistent]?{
-        var db: [PrefetchPersistent]?
+    internal func dbLoadPrefetch(itemIds: Set<Int>) -> Set<PrefetchPersistent>{
+        var db = Set<PrefetchPersistent>()
         
         let request: NSFetchRequest<PrefetchPersistent> = PrefetchPersistent.fetchRequest()
         request.sortDescriptors = [
@@ -76,7 +77,7 @@ extension DataLoadService {
         ]
         request.predicate = NSPredicate(format: "ANY itemId IN %@", itemIds)
         do {
-            db = try viewContext.fetch(request)
+            db = try Set(viewContext.fetch(request))
         } catch let error as NSError {
             print("Could not fetch. \(error), \(error.userInfo)")
         }

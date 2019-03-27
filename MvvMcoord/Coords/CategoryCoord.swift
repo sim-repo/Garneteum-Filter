@@ -37,22 +37,10 @@ class CategoryCoord: BaseCoord<CoordRetEnum> {
             .flatMap{[weak self] baseId -> Observable<CoordRetEnum> in
                 guard let `self` = self else { return .empty() }
                 
-                
+                let applyLogic: FilterApplyLogic = FilterApplyLogic.shared
+                applyLogic.dealloc()
                 getDataLoadService().screenHandle(eventString: "ShowCatalog", baseId)
-                
-                // >>>>
-               // let applyLogic: FilterApplyLogic = FilterApplyLogic.shared
-               // applyLogic.dealloc()
-//              let networkService = getNetworkService()
-//                //GlobalCache.dealloc()
-//              networkService.reqPreloadFiltersChunk1(categoryId: baseId)
-//             // networkService.reqPreloadSubFiltersChunk2(categoryId: baseId)
-//              networkService.reqPreloadItemsChunk3(categoryId: baseId)
-              
-               // networkService.reqPreloadSinglesChunk4(filterId: 2, uuid: UUID().uuidString)
-               // networkService.requestPreloadFullFilterEntities(categoryId: baseId)
-                
-              return self.showCatalog(on: self.viewController, baseId: baseId)
+                return self.showCatalog(on: self.viewController, baseId: baseId)
             }
             .subscribe()
             .disposed(by: self.disposeBag)

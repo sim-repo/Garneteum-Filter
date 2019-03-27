@@ -26,7 +26,7 @@ class RootCoord: BaseCoord<CoordRetEnum> {
         
 //         let creater = FirebaseCreator.shared
 //         creater.run()
-//
+
         getDataLoadService().screenHandle(eventString: "RootCoord")
 
         vm.outShowSubcategory
