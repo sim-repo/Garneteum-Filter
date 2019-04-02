@@ -105,6 +105,7 @@ class LightClientFCF : NetworkFacadeBase {
                 self.fireFullFilterEntities(filters, subfilters)
             }
         }
+        networkingFunc?()
         runRequest(networkFunction: networkingFunc)
     }
     

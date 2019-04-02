@@ -24,12 +24,14 @@ extension DataLoadService {
         let res = dbLoadPrefetch(itemIds: itemIds)
         guard res.count >= itemIds.count
             else {
+                
+                let dbFoundItems = PrefetchPersistent.getModels(prefetchPersistents: res)
                 let completion: (([CatalogModel1])->Void)? = { [weak self] catalogModels in
-                    self?.dbSavePrefetch(categoryId, catalogModels)
+                    self?.dbSavePrefetch(categoryId, catalogModels, dbFoundItems)
                 }
-                let dbRemIds = Set(res.compactMap({Int($0.itemId)}))
-                let remItemIds = Set(itemIds).subtracting(dbRemIds)
-                networkService.reqPrefetch(itemIds: Array(remItemIds), completion: completion)
+                let dbFoundItemIds = Set(res.compactMap({Int($0.itemId)}))
+                let notFoundItemsIds = Set(itemIds).subtracting(dbFoundItemIds)
+                networkService.reqPrefetch(itemIds: Array(notFoundItemsIds), completion: completion)
                 return
         }
         let catalogModels: [CatalogModel] = PrefetchPersistent.getModels(prefetchPersistents: res)
@@ -47,21 +49,19 @@ extension DataLoadService {
     }
     
     
-    internal func dbSavePrefetch(_ categoryId: CategoryId, _ catalogModels: [CatalogModel1]){
-        
-       // dbDeleteEntity(categoryId, clazz: PrefetchPersistent.self, entity: "PrefetchPersistent", fetchBatchSize: 0, sql: "categoryId == \(categoryId)")
-
+    internal func dbSavePrefetch(_ categoryId: CategoryId, _ netItems: [CatalogModel1], _ dbFoundItems: [CatalogModel]){
         DispatchQueue.global(qos: .userInitiated).async {[weak self] in
             guard let `self` = self else { return }
-            self.viewContext.performAndWait {
+            self.appDelegate.moc.performAndWait {
                 var db = [PrefetchPersistent]()
-                for model in catalogModels {
-                    let row = PrefetchPersistent(entity: PrefetchPersistent.entity(), insertInto: self.viewContext)
+                for model in netItems {
+                    let row = PrefetchPersistent(entity: PrefetchPersistent.entity(), insertInto: self.appDelegate.moc)
                     row.setup(model: model)
                     db.append(row)
                 }
                 self.appDelegate.saveContext()
-                let res = catalogModels.compactMap({CatalogModel(catalogModel1: $0)})
+                var res = netItems.compactMap({CatalogModel(catalogModel1: $0)})
+                res.append(contentsOf: dbFoundItems)
                 self.firePrefetch(res)
             }
         }
@@ -77,7 +77,7 @@ extension DataLoadService {
         ]
         request.predicate = NSPredicate(format: "ANY itemId IN %@", itemIds)
         do {
-            db = try Set(viewContext.fetch(request))
+            db = try Set(appDelegate.moc.fetch(request))
         } catch let error as NSError {
             print("Could not fetch. \(error), \(error.userInfo)")
         }

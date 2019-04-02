@@ -32,6 +32,8 @@ protocol FilterActionDelegate : class {
     func calcMidTotal(tmpMinPrice: MinPrice, tmpMaxPrice: MaxPrice)
     func showApplyWarning() -> PublishSubject<Void>
     func reloadSubfilterVC() -> PublishSubject<Void>
+    func refreshFromSubfilter()
+    func refreshFromFilter()
 }
 
 
@@ -111,6 +113,14 @@ extension CatalogVM : FilterActionDelegate {
     
     func cleanupFromSubFilterEvent() -> PublishSubject<FilterId> {
         return inCleanUpFromSubFilterEvent
+    }
+    
+    func refreshFromSubfilter(){
+        inRefreshFromSubFilterEvent.onNext(Void())
+    }
+    
+    func refreshFromFilter(){
+        inRefreshFromFilterEvent.onNext(Void())
     }
     
     func showApplyViewEvent() -> BehaviorSubject<Bool> {
@@ -370,6 +380,7 @@ extension CatalogVM : FilterActionDelegate {
         
         
         getDataLoadService().getEnterSubFilterEvent()
+            .filter({$0.1.count > 0})
             .subscribe(onNext: {[weak self] res in
                 guard let `self` = self else { return }
                 let filterId = res.0
@@ -455,11 +466,33 @@ extension CatalogVM : FilterActionDelegate {
                 
                 guard res.count > 0 else { return }
                 let filters = res
-                self.filters.removeAll()
-                self.filters = Dictionary(uniqueKeysWithValues: filters.compactMap({$0}).map{ ($0.id, $0) })
+                filters.forEach { [weak self] filter in
+                    self?.filters[filter.id] = filter
+                }
+                
+               // self.filters = Dictionary(uniqueKeysWithValues: filters.compactMap({$0}).map{ ($0.id, $0) })
                 self.outFiltersEvent.onNext(self.getEnabledFilters())
                 self.wait().onNext((.enterFilter, false))
+                self.unitTestSignalOperationComplete.onNext(self.utMsgId)
+            })
+            .disposed(by: bag)
+        
+        
+        getDataLoadService().getCrossFilters()
+            .filter({$0.count > 0})
+            .observeOn(MainScheduler.asyncInstance)
+            .subscribe(onNext: { [weak self] res in
+                guard let `self` = self else { return }
                 
+                guard res.count > 0 else { return }
+                let filters = res
+                filters.forEach { [weak self] filter in
+                    self?.filters[filter.id] = filter
+                }
+                
+                // self.filters = Dictionary(uniqueKeysWithValues: filters.compactMap({$0}).map{ ($0.id, $0) })
+                self.outFiltersEvent.onNext(self.getEnabledFilters())
+                self.wait().onNext((.enterFilter, false))
                 self.unitTestSignalOperationComplete.onNext(self.utMsgId)
             })
             .disposed(by: bag)
@@ -484,6 +517,7 @@ extension CatalogVM : FilterActionDelegate {
                 }
             })
             .disposed(by: bag)
+        
         
         getDataLoadService().getCategorySubfilters()
             .filter({$0.count > 0})
@@ -515,18 +549,30 @@ extension CatalogVM : FilterActionDelegate {
             .disposed(by: bag)
         
         
-//        getNetworkService().getDownloadsDoneEvent()
-//            .observeOn(MainScheduler.asyncInstance)
-//            .subscribe(onNext: {[weak self] _ in
-//                DispatchQueue.global(qos: .background).async {[weak self] in
-//                    guard let `self` = self else { return }
-//                    getNetworkService().reqEnterSubFilter(filterId: self.currEnteredFilterId, //!!!!!!!!!!!!!!!!!!!!!!!
-//                                                              appliedSubFilters: self.midAppliedSubFilters,
-//                                                              rangePrice: self.rangePrice.getPricesWhenRequestSubFilters()
-//                    )
-//                }
-//            })
-//            .disposed(by: bag)
+
+        inRefreshFromSubFilterEvent
+            .observeOn(MainScheduler.asyncInstance)
+            .subscribe(onNext: {[weak self] _ in
+                DispatchQueue.global(qos: .background).async {[weak self] in
+                    guard let `self` = self else { return }
+                    getDataLoadService().reqEnterSubFilter(filterId: self.currEnteredFilterId,
+                                                           applied: self.midAppliedSubFilters,
+                                                           rangePrice: self.rangePrice.getPricesWhenRequestSubFilters())
+                }
+            })
+            .disposed(by: bag)
+        
+        
+        inRefreshFromFilterEvent
+            .observeOn(MainScheduler.asyncInstance)
+            .subscribe(onNext: {[weak self] _ in
+                DispatchQueue.global(qos: .background).async {[weak self] in
+                    guard let `self` = self else { return }
+                    getDataLoadService().screenHandle(eventString: "ShowCatalog", self.categoryId)
+                }
+            })
+            .disposed(by: bag)
+    
     }
     
 }

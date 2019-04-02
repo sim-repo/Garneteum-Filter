@@ -10,13 +10,31 @@ extension DataLoadService {
         guard let _res = res,
             _res.count > 0
             else {
+                doEmitCrossSubfilters(sql: "cross == 1")
+                emitCrossFilters(sql: "cross == 1")
                 return
         }
+        
+        for uid in _res {
+            crossDelete(filterId: Int(uid.filterId))
+        }
+        
+        notifyCrossSubfilters
+            .debug()
+            .skip(_res.count-1)
+            .take(1)
+            .subscribe(onNext: {[weak self] cnt in
+                print("CROSS SUBFILTERS EMIT")
+                self?.doEmitCrossSubfilters(sql: "cross == 1")
+                self?.emitCrossFilters(sql: "cross == 1")
+            })
+            .disposed(by: bag)
         
         for uid in _res {
             crossNetLoad(filterId: Int(uid.filterId))
         }
     }
+    
     
     internal func crossRefreshDone(filterId: Int) {
         print("done: \(filterId)")
@@ -24,6 +42,7 @@ extension DataLoadService {
         guard let _res = res else { return }
         _res[0].needRefresh = false
         self.appDelegate.saveContext()
+        notifyCrossSubfilters.onNext(Void())
     }
     
     
@@ -33,7 +52,7 @@ extension DataLoadService {
         let request: NSFetchRequest<LastUidPersistent> = LastUidPersistent.fetchRequest()
         request.predicate = NSPredicate(format: sql)
         do {
-            uidDB = try viewContext.fetch(request)
+            uidDB = try self.appDelegate.moc.fetch(request)
         } catch let error as NSError {
             print("Could not fetch. \(error), \(error.userInfo)")
         }
@@ -49,7 +68,7 @@ extension DataLoadService {
             request.predicate = NSPredicate(format: sql)
         }
         do {
-            db = try viewContext.fetch(request)
+            db = try self.appDelegate.moc.fetch(request)
         } catch let error as NSError {
             print("Could not fetch. \(error), \(error.userInfo)")
         }
@@ -63,7 +82,7 @@ extension DataLoadService {
         let request: NSFetchRequest<FilterPersistent> = FilterPersistent.fetchRequest()
         request.predicate = NSPredicate(format: sql)
         do {
-            db = try viewContext.fetch(request)
+            db = try self.appDelegate.moc.fetch(request)
         } catch let error as NSError {
             print("Could not fetch. \(error), \(error.userInfo)")
         }
@@ -81,25 +100,23 @@ extension DataLoadService {
     
     
     internal func crossSave(filterId: FilterId, filters: [FilterModel]?, subfilters: [SubfilterModel]?) {
-       // print("crossSave: \(filterId)")
+        print("crossSave: \(filterId)")
         guard let _filters = filters,
             let _subfilters = subfilters
             else { return }
         
-        crossDelete(filterId: filterId)
-        
         DispatchQueue.global(qos: .userInitiated).async {[weak self] in
             guard let `self` = self else { return }
-            self.viewContext.performAndWait {
+            self.self.appDelegate.moc.performAndWait {
                 var filtersDB = [FilterPersistent]()
                 for element in _filters {
-                    let filterDB = FilterPersistent(entity: FilterPersistent.entity(), insertInto: self.viewContext)
+                    let filterDB = FilterPersistent(entity: FilterPersistent.entity(), insertInto: self.appDelegate.moc)
                     filterDB.setup(filterModel: element)
                     filtersDB.append(filterDB)
                 }
                 var subfiltersDB = [SubfilterPersistent]()
                 for element in _subfilters {
-                    let subfilterDB = SubfilterPersistent(entity: SubfilterPersistent.entity(), insertInto: self.viewContext)
+                    let subfilterDB = SubfilterPersistent(entity: SubfilterPersistent.entity(), insertInto: self.appDelegate.moc)
                     subfilterDB.setup(subfilterModel: element)
                     subfiltersDB.append(subfilterDB)
                 }
@@ -111,17 +128,18 @@ extension DataLoadService {
     
     
     
+    
     internal func crossDelete(filterId: FilterId) {
         let res1 = dbLoadSubfilter(sql: "filterId == \(filterId)")
         guard let _res1 = res1 else { return }
         for element in _res1 {
-            viewContext.delete(element)
+            self.appDelegate.moc.delete(element)
         }
         
         let res2 = dbLoadCrossFilter(sql: "id == \(filterId)")
         guard let _res2 = res2 else { return }
         for element in _res2 {
-            viewContext.delete(element)
+            self.appDelegate.moc.delete(element)
         }
         appDelegate.saveContext()
     }

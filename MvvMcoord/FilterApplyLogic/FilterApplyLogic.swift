@@ -647,59 +647,6 @@ class FilterApplyLogic {
             usleep(200)
         }
     }
-    
-    
-    
-    
-    //
-    //    // Catalog Models:
-    //    private func loadItemsFromDb(categoryId: Int, offset: Int){
-    //
-    //        itemsByCatalog = TestData.loadCatalogs(categoryId: categoryId)
-    //
-    //        let catalogModels = itemsByCatalog[categoryId] ?? []
-    //        itemsById.removeAll()
-    //        let limit = 5
-    //
-    //        var next = ArraySlice<CatalogModel>()
-    //        if catalogModels.count > offset{
-    //           let end = max(catalogModels.count-1, offset + limit)
-    //           next = catalogModels[offset...end]
-    //        }
-    //
-    //        next.forEach{ model in
-    //            itemsById[model.id] = model
-    //        }
-    //    }
-    //
-    //
-    //    private func getCatalogModel(categoryId: Int, appliedSubFilters: Set<Int>, offset: Int) -> [CatalogModel?]{
-    //        loadItemsFromDb(categoryId: categoryId, offset: offset)
-    //
-    //        guard appliedSubFilters.count > 0
-    //        else {
-    //            return itemsById.compactMap({$0.value}).sorted(by: {$0.id < $1.id })
-    //        }
-    //
-    //
-    //        groupApplying(applying: appliedSubFilters)
-    //
-    //
-    //        let items = getItemsIntersect()
-    //
-    //
-    ////
-    ////        let itemIdsArr = appliedSubFilters
-    ////        .compactMap({itemsBySubfilter[$0]})
-    ////        .flatMap{$0}
-    ////
-    ////        let itemIdsSet = Set(itemIdsArr)
-    //        let res = items
-    //            .compactMap({itemsById[$0]})
-    //
-    //        return res
-    //    }
-    
 }
 
 
@@ -879,11 +826,13 @@ extension FilterApplyLogic: FilterApplyLogicProtocol {
                priceByItemId_: PriceByItemId? = nil
         ){
         
+       // DispatchQueue.global(qos: .userInitiated).async {[weak self] in
+        //    guard let `self` = self else { return }
         if let a = filters_ {
             print("----------- Apply :::: Filters:")
             a.forEach({f in
-               filters[f.id] = f
-               print("\(filters[f.id]?.title)")
+               self.filters[f.id] = f
+               print("\(self.filters[f.id]?.title)")
             })
             print("----------- Filters count: \(self.filters.count)")
             print(" ")
@@ -894,33 +843,24 @@ extension FilterApplyLogic: FilterApplyLogicProtocol {
         if let b = subFilters_ {
             print("----------- Apply :::: Subfilters:")
             b.forEach({s in
-                subFilters[s.id] = s
-                print("\(subFilters[s.id]?.title)")
-                if subfiltersByFilter[s.filterId] == nil {
-                    subfiltersByFilter[s.filterId] = []
+                self.subFilters[s.id] = s
+              //  print("\(self.subFilters[s.id]?.title)")
+                if self.subfiltersByFilter[s.filterId] == nil {
+                    self.subfiltersByFilter[s.filterId] = []
                 }
-                subfiltersByFilter[s.filterId]?.append(s.id)
+                self.subfiltersByFilter[s.filterId]?.append(s.id)
             })
-            print("----------- Subfilters count: \(subFilters.count)    SubfiltersByFilter count: \(subFilters.count)")
+            print("----------- Subfilters count: \(self.subFilters.count)    SubfiltersByFilter count: \(self.subFilters.count)")
             print(" ")
             print(" ")
             print(" ")
         }
         
-//        if let c = subfiltersByFilter {
-//            for (k,v) in c {
-//                if self.subfiltersByFilter[k] == nil {
-//                    self.subfiltersByFilter[k] = []
-//                }
-//                self.subfiltersByFilter[k] = v
-//            }
-//            //print("subfiltersByFilter Loading Completed...")
-//        }
         
         if let d = subfiltersByItem_ {
             print("----------- Apply :::: SubfiltersByItem:")
-            subfiltersByItem = d
-            print("----------- SubfiltersByItem: \(subfiltersByItem.count)")
+            self.subfiltersByItem = d
+            print("----------- SubfiltersByItem: \(self.subfiltersByItem.count)")
             print(" ")
             print(" ")
             print(" ")
@@ -928,8 +868,8 @@ extension FilterApplyLogic: FilterApplyLogicProtocol {
         
         if let e = itemsBySubfilter_ {
             print("----------- Apply :::: ItemsBySubfilter:")
-            itemsBySubfilter = e
-            print("----------- ItemsBySubfilter count: \(itemsBySubfilter.count)")
+            self.itemsBySubfilter = e
+            print("----------- ItemsBySubfilter count: \(self.itemsBySubfilter.count)")
             print(" ")
             print(" ")
             print(" ")
@@ -937,21 +877,43 @@ extension FilterApplyLogic: FilterApplyLogicProtocol {
         
         if let f = priceByItemId_ {
             print("----------- Apply :::: PriceByItemId:")
-            priceByItemId = f
-            print("----------- PriceByItemId  count: \(priceByItemId.count)")
+            self.priceByItemId = f
+            print("----------- PriceByItemId  count: \(self.priceByItemId.count)")
             print(" ")
             print(" ")
             print(" ")
         }
+          //  }
     }
     
     
     func dealloc(){
-        filters.removeAll()
-        subfiltersByFilter.removeAll()
+        
+        let filterKeys = filters.filter({$0.value.cross == false}).compactMap({$0.key})
+        filterKeys.forEach({key in
+            filters.removeValue(forKey: key)
+            subfiltersByFilter.removeValue(forKey: key)
+            sectionSubFiltersByFilter.removeValue(forKey: key)
+            let subfilterKeys = subFilters.filter({$0.value.filterId == key}).compactMap({$0.key})
+            subfilterKeys.forEach{subfilterKey in
+                subFilters.removeValue(forKey: subfilterKey)
+            }
+        })
+        
         subfiltersByItem.removeAll()
         itemsBySubfilter.removeAll()
         priceByItemId.removeAll()
+        itemsById.removeAll()
+        itemsByCatalog.removeAll()
+        itemIds.removeAll()
+        print("----------- Apply :::: After dealloc: ")
+        print("----------- filters : \(filters.count)")
+        print("----------- subfilters : \(subFilters.count)")
+        print("----------- subfiltersByFilter : \(subfiltersByFilter.count)")
+        print(" ")
+        print(" ")
+        print(" ")
     }
+    
 }
 

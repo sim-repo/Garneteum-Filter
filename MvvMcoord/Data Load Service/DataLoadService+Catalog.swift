@@ -68,14 +68,14 @@ extension DataLoadService {
         
         DispatchQueue.global(qos: .userInitiated).async {[weak self] in
             guard let `self` = self else { return }
-            self.viewContext.performAndWait {
-                let row = CategoriesPersistent(entity: CategoriesPersistent.entity(), insertInto: self.viewContext)
+            self.appDelegate.moc.performAndWait {
+                let row = CategoriesPersistent(entity: CategoriesPersistent.entity(), insertInto: self.appDelegate.moc)
                 row.setup(categoryId, minPrice, maxPrice, fetchLimit)
                 self.appDelegate.saveContext()
                 
                 var db2 = [CategoryItemIdsPersistent]()
                 for itemId in itemIds {
-                    let row = CategoryItemIdsPersistent(entity: CategoryItemIdsPersistent.entity(), insertInto: self.viewContext)
+                    let row = CategoryItemIdsPersistent(entity: CategoryItemIdsPersistent.entity(), insertInto: self.appDelegate.moc)
                     row.setup(categoryId, itemId)
                     db2.append(row)
                 }
@@ -98,7 +98,7 @@ extension DataLoadService {
             request.predicate = NSPredicate(format: sql)
         }
         do {
-            db = try viewContext.fetch(request) as? [T]
+            db = try self.appDelegate.moc.fetch(request) as? [T]
         } catch let error as NSError {
             print("Could not fetch. \(error), \(error.userInfo)")
         }
@@ -112,7 +112,7 @@ extension DataLoadService {
         let res_ = dbLoadEntity(categoryId, clazz, entity, fetchBatchSize, sql: sql)
         guard let res = res_ else { return }
         for element in res {
-            viewContext.delete(element)
+            self.appDelegate.moc.delete(element)
         }
         appDelegate.saveContext()
     }

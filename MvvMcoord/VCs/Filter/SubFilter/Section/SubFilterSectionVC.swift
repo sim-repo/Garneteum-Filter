@@ -114,6 +114,28 @@ class SubFilterSectionVC: UIViewController {
 // Waiting Indicator
 extension SubFilterSectionVC {
     
+    
+    private func showAlert(text: String){
+        let alert = UIAlertController(title: "Ошибка", message: text, preferredStyle: .alert)
+
+        let cancelAction = UIAlertAction(title: "Отмена", style: .default) { (_) -> Void in
+        }
+        let refreshAction = UIAlertAction(title: "Обновить снова", style: .default) { (_) -> Void in
+            self.viewModel.filterActionDelegate?.refreshFromSubfilter()
+        }
+        alert.addAction(cancelAction)
+        alert.addAction(refreshAction)
+        
+        self.present(alert, animated: true, completion: nil)
+    }
+    
+    @objc func internalWaitControl() {
+        if waitActivityView.isAnimating {
+            showAlert(text: "Ошибка сетевого запроса.")
+            stopWait()
+        }
+    }
+    
     private func bindWaitEvent(){
         waitContainer.frame = CGRect(x: view.center.x, y: view.center.y, width: 80, height: 80)
         waitContainer.backgroundColor = .lightGray
@@ -121,18 +143,20 @@ extension SubFilterSectionVC {
         waitActivityView.frame = CGRect(x: 0, y: 0, width: 80, height: 80)
         waitContainer.isHidden = true
         waitContainer.addSubview(waitActivityView)
+        waitContainer.alpha = 1.0
         view.addSubview(waitContainer)
         
         viewModel.filterActionDelegate?.wait()
-  
             .filter({[.enterSubFilter].contains($0.0)})
             .takeWhile({$0.1 == true})
             .subscribe(
                 onNext: {[weak self] res in
-                    guard let `self` = self else {return}
-                    print("start wait")
-                    self.startWait()
-                    },
+                    DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(2)){
+                        guard let `self` = self else {return}
+                        Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(self.internalWaitControl), userInfo: nil, repeats: false)
+                        self.startWait()
+                    }
+                },
                 onCompleted: {
                     self.stopWait()
                 })
@@ -141,6 +165,7 @@ extension SubFilterSectionVC {
     
     
     private func startWait() {
+        guard waitContainer.alpha == 1.0 else { return }
         tableView.isHidden = true
         waitContainer.isHidden = false
         waitActivityView.startAnimating()
@@ -148,10 +173,15 @@ extension SubFilterSectionVC {
     
     private func stopWait(){
         tableView.isHidden = false
+        waitContainer.alpha = 0.0
         waitContainer.isHidden = true
         waitActivityView.stopAnimating()
     }
 }
+
+
+
+
 
 extension SubFilterSectionVC: UITableViewDelegate {
     override func didMove(toParent parent: UIViewController?) {

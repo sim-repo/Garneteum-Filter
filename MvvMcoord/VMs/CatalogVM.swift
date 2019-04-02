@@ -80,6 +80,9 @@ class CatalogVM : BaseVM {
     internal var inSelectSubFilterEvent = PublishSubject<(Int, Bool)>()
     internal var inCleanUpFromFilterEvent = PublishSubject<Void>()
     internal var inCleanUpFromSubFilterEvent = PublishSubject<Int>()
+    internal var inRefreshFromSubFilterEvent = PublishSubject<Void>()
+    internal var inRefreshFromFilterEvent = PublishSubject<Void>()
+    
     
     internal var outFiltersEvent = BehaviorSubject<[FilterModel?]>(value: [])
     internal var outSubFiltersEvent = BehaviorSubject<[SubfilterModel?]>(value: [])
@@ -112,7 +115,6 @@ class CatalogVM : BaseVM {
             .bind(to: outTitle)
             .disposed(by: bag)
         
-        DataLoadService.shared.screenHandle(eventString: "CatalogVM")
     }
     
     
@@ -295,11 +297,12 @@ class CatalogVM : BaseVM {
         
         switch filter.filterEnum {
         case .select:
-            var res = [SubfilterModel?]()
+            //var res = [SubfilterModel?]()
+            var res = [SubfilterModel]()
             if let ids = self.subfiltersByFilter[filterId] {
                 res = self.getEnabledSubFilters(ids: ids)
             }
-            self.outSubFiltersEvent.onNext(res)
+            self.outSubFiltersEvent.onNext(res.sorted(by: {$0.id < $1.id}))
         case .section:
             fillSectionSubFilters()
             if let sections = sectionSubFiltersByFilter[filterId] {
@@ -435,7 +438,8 @@ class CatalogVM : BaseVM {
     }
     
     
-    internal func getEnabledSubFilters(ids: [Int]) -> [SubfilterModel?] {
+    //internal func getEnabledSubFilters(ids: [Int]) -> [SubfilterModel?] {
+    internal func getEnabledSubFilters(ids: [Int]) -> [SubfilterModel] {
         let res = ids
             .compactMap({subFilters[$0]})
             .filter({$0.enabled == true})

@@ -241,7 +241,14 @@ extension FilterVC {
     
     private func showAlert(text: String){
         let alert = UIAlertController(title: "Ошибка", message: text, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+        
+        let cancelAction = UIAlertAction(title: "Отмена", style: .default) { (_) -> Void in
+        }
+        let refreshAction = UIAlertAction(title: "Обновить снова", style: .default) { (_) -> Void in
+            self.viewModel.filterActionDelegate?.refreshFromFilter()
+        }
+        alert.addAction(cancelAction)
+        alert.addAction(refreshAction)
         self.present(alert, animated: true, completion: nil)
     }
     

@@ -23,11 +23,11 @@ class RootCoord: BaseCoord<CoordRetEnum> {
         
         
         viewController.viewModel = vm
-        
+
 //         let creater = FirebaseCreator.shared
 //         creater.run()
 
-        getDataLoadService().screenHandle(eventString: "RootCoord")
+     getDataLoadService().screenHandle(eventString: "RootCoord")
 
         vm.outShowSubcategory
             .subscribe(

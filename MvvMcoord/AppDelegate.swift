@@ -11,6 +11,9 @@ let storage = Storage.storage()
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    
+    
+    
     lazy var persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "FilterCoreData")
         container.loadPersistentStores(completionHandler: {
@@ -24,19 +27,52 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }()
     
     
+    private lazy var privateMoc: NSManagedObjectContext = {
+        // Initialize Managed Object Context
+        var managedObjectContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        
+        // Configure Managed Object Context
+        managedObjectContext.persistentStoreCoordinator = persistentContainer.persistentStoreCoordinator
+        
+        return managedObjectContext
+    }()
+    
+    private(set) lazy var moc: NSManagedObjectContext = {
+        let managedObjectContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
+        
+        managedObjectContext.parent = self.privateMoc
+        
+        return managedObjectContext
+    }()
     
     
     func saveContext() {
-        let context = persistentContainer.viewContext
-        if context.hasChanges {
+        moc.performAndWait {
             do {
-                try context.save()
+                if self.moc.hasChanges {
+                    try self.moc.save()
+                }
             } catch {
-                let err = error as NSError
-                fatalError("Unresolved errror \(err), \(err.userInfo)")
+                let saveError = error as NSError
+                print("Unable to Save Changes of Managed Object Context")
+                print("\(saveError), \(saveError.localizedDescription)")
             }
+            
+            self.privateMoc.performAndWait {
+                do {
+                    if self.privateMoc.hasChanges {
+                        try self.privateMoc.save()
+                    }
+                } catch {
+                    let saveError = error as NSError
+                    print("Unable to Save Changes of Private Managed Object Context")
+                    print("\(saveError), \(saveError.localizedDescription)")
+                }
+            }
+            
         }
     }
+    
     
     private var appCoordinator: AppCoord!
     private let disposeBag = DisposeBag()

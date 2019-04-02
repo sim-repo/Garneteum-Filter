@@ -10,6 +10,7 @@ protocol DataLoadFacadeProtocol {
     func screenHandle(eventString: String)
     
     func getFilters() -> BehaviorSubject<[FilterModel]>
+    func getCrossFilters() -> BehaviorSubject<[FilterModel]>
     func getCrossSubfilters() -> BehaviorSubject<[SubfilterModel]>
     func getCategorySubfilters() -> BehaviorSubject<[SubfilterModel]>
     
@@ -46,6 +47,8 @@ class DataLoadService : DataLoadFacadeProtocol {
     
     internal var subfiltersByItem: SubfiltersByItem = SubfiltersByItem()
     internal var itemsBySubfilter: ItemsBySubfilter = ItemsBySubfilter()
+    internal var notifyCrossSubfilters = PublishSubject<Void>()
+    
     
     enum CrossFilterEnum: Int {
         case brands = 1, colors
@@ -55,14 +58,14 @@ class DataLoadService : DataLoadFacadeProtocol {
         case filters = "filters", subfilters = "subfilters", subfiltersByItem = "subfiltersByItem", itemsBySubfilter = "itemsBySubfilter", priceByItemId = "priceByItemId", prefetch = "prefetch", catalogIds = "catalogIds"
     }
     
-    internal let viewContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    //internal let viewContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
-    lazy var updateContext: NSManagedObjectContext = {
-        let _updateContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
-        _updateContext.parent = self.viewContext
-        return _updateContext
-    }()
-    
+//    lazy var updateContext: NSManagedObjectContext = {
+//        let _updateContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+//        _updateContext.parent = self.viewContext
+//        return _updateContext
+//    }()
+//
     internal var appDelegate = UIApplication.shared.delegate as! AppDelegate
     
     
@@ -71,6 +74,7 @@ class DataLoadService : DataLoadFacadeProtocol {
     let applyLogic: FilterApplyLogic = FilterApplyLogic.shared
     
     internal var outFilters = BehaviorSubject<[FilterModel]>(value: [])
+    internal var outCrossFilters = BehaviorSubject<[FilterModel]>(value: [])
     internal var outCrossSubfilters = BehaviorSubject<[SubfilterModel]>(value: [])
     internal var outCategorySubfilters = BehaviorSubject<[SubfilterModel]>(value: [])
     internal var outEnterSubFilter = PublishSubject<(FilterId, SubFilterIds, Applied, CountItems)>()
@@ -86,7 +90,6 @@ class DataLoadService : DataLoadFacadeProtocol {
     func screenHandle(eventString: String) {
         switch eventString {
             case "RootCoord": loadNewUIDs()
-            case "CatalogVM": doEmitCrossSubfilters(sql: "cross == 1")
             default:
                 fatalError("screenHandle: no handlers found for value '\(eventString)'")
         }
@@ -120,6 +123,10 @@ class DataLoadService : DataLoadFacadeProtocol {
         return outFilters
     }
     
+    func getCrossFilters() -> BehaviorSubject<[FilterModel]> {
+        return outCrossFilters
+    }
+    
     func getCrossSubfilters() -> BehaviorSubject<[SubfilterModel]> {
         return outCrossSubfilters
     }
@@ -151,10 +158,10 @@ class DataLoadService : DataLoadFacadeProtocol {
         let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entity)
         fetchRequest.returnsObjectsAsFaults = false
         do {
-            let results = try viewContext.fetch(fetchRequest)
+            let results = try appDelegate.moc.fetch(fetchRequest)
             for object in results {
                 guard let objectData = object as? NSManagedObject else { continue }
-                viewContext.delete(objectData)
+                appDelegate.moc.delete(objectData)
                 appDelegate.saveContext()
             }
             
@@ -191,8 +198,17 @@ extension DataLoadService {
         }
     }
     
+    internal func emitCrossFilters(sql: String){
+        if let filtersDB = dbLoadFilter(sql: sql) {
+            let filters = filtersDB.compactMap({$0.getFilterModel()})
+            self.applyLogic.setup(filters_: filters)
+            self.outCrossFilters.onNext(filters)
+        }
+    }
+    
     
     internal func setupApplyFromDB(sql: String){
+        
         if let subfiltersItemsDB = dbLoadSubfiltersItems(sql: sql) {
             let (subfiltersByItem, itemsBySubfilter) = SubfilterItemPersistent.getApplyData(subfiltersItemPersistent: subfiltersItemsDB)
             self.applyLogic.setup(subfiltersByItem_: subfiltersByItem)
@@ -217,7 +233,7 @@ extension DataLoadService {
         let request: NSFetchRequest<FilterPersistent> = FilterPersistent.fetchRequest()
         request.predicate = NSPredicate(format: sql)
         do {
-            db = try viewContext.fetch(request)
+            db = try appDelegate.moc.fetch(request)
         } catch let error as NSError {
             print("Could not fetch. \(error), \(error.userInfo)")
         }

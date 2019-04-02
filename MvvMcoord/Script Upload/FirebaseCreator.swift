@@ -78,25 +78,25 @@ class FirebaseCreator {
     
     func ЖенскиеПовседневныеПлатья() {
         uploadFilters(categoryId: 01010101,
-                      totalItems: 530,
+                      totalItems: 13,
                       minPrice: 1000,
                       maxPrice: 25000,
-                      biege: 8,
-                      white: 9,
-                      blue: 27,
-                      yellow: 132,
-                      green: 132,
-                      brown: 17,
-                      red: 11,
-                      orange: 9,
-                      pink: 7,
-                      gray: 8,
-                      darkblue: 71,
-                      violet: 62,
-                      black: 37,
+                      biege: 1,
+                      white: 1,
+                      blue: 1,
+                      yellow: 1,
+                      green: 1,
+                      brown: 1,
+                      red: 1,
+                      orange: 1,
+                      pink: 1,
+                      gray: 1,
+                      darkblue: 1,
+                      violet: 1,
+                      black: 1,
                       filters: [.size, .season , .material , .delivery, .clasp, .neckline, .decorElements, .dressStructuralElements, .sleeveType]
                       )
-
+//
 //        uploadFilters(categoryId: 01010101,
 //                      totalItems: 52,
 //                      minPrice: 1000,
@@ -115,7 +115,7 @@ class FirebaseCreator {
 //                      violet: 4,
 //                      black: 4,
 //                      filters: [.season]
- //       )
+//        )
     }
     
     
@@ -186,8 +186,11 @@ class FirebaseCreator {
         uploadCrossFilters()
         lastFilterId = ft.getFirstFilterId()
         ЖенскиеПовседневныеПлатья()
+        print("ЖенскиеПовседневныеПлатья OK")
         ЖенскиеБрюки()
-      //  ЖенскиеРубашки()
+        print("ЖенскиеБрюки OK")
+        ЖенскиеРубашки()
+        print("ЖенскиеРубашки OK")
     }
 }
 

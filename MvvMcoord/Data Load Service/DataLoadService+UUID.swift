@@ -16,13 +16,15 @@ extension DataLoadService {
     internal func saveNewUIDs(_ uids: [UidModel]?) {
         guard let _uids = uids
             else { return }
-        dbDeleteData("NewUidPersistent")
+        // self.dbDeleteData("NewUidPersistent") // old
         DispatchQueue.global(qos: .userInitiated).async {[weak self] in
+            
             guard let `self` = self else { return }
-            self.viewContext.performAndWait {
+            self.dbDeleteData("NewUidPersistent") // add
+            self.appDelegate.moc.performAndWait {
                 var uidsDB = [NewUidPersistent]()
                 for element in _uids {
-                    let uidDB = NewUidPersistent(entity: NewUidPersistent.entity(), insertInto: self.viewContext)
+                    let uidDB = NewUidPersistent(entity: NewUidPersistent.entity(), insertInto: self.appDelegate.moc)
                     uidDB.setup(uidModel: element)
                     uidsDB.append(uidDB)
                 }
@@ -34,21 +36,21 @@ extension DataLoadService {
     
     internal func saveLastUIDs(_ uids: [NewUidPersistent]) {
       //print("saveLastUIDs")
-        DispatchQueue.global(qos: .userInitiated).async {[weak self] in
-            guard let `self` = self else { return }
-            self.viewContext.performAndWait {
+       // DispatchQueue.global(qos: .userInitiated).async {[weak self] in
+          //  guard let `self` = self else { return }
+            appDelegate.moc.performAndWait {
                 var uidsDB = [LastUidPersistent]()
                 for element in uids {
-                    let uidDB = LastUidPersistent(entity: LastUidPersistent.entity(), insertInto: self.viewContext)
+                    let uidDB = LastUidPersistent(entity: LastUidPersistent.entity(), insertInto: self.appDelegate.moc)
                     uidDB.setup(newUID: element)
                     uidsDB.append(uidDB)
                 }
                 self.appDelegate.saveContext()
+                self.checkCrossRefresh()
+                self.clearOldPrefetch()
+                self.clearOldCatalog()
             }
-            self.checkCrossRefresh()
-            self.clearOldPrefetch()
-            self.clearOldCatalog()
-        }
+      //  }
     }
     
     internal func toRefresh(last: LastUidPersistent, newUid: String){
@@ -96,7 +98,7 @@ extension DataLoadService {
     internal func dbLoadNewUIDs() -> [NewUidPersistent]?{
         var uidDB: [NewUidPersistent]?
         do {
-            uidDB = try viewContext.fetch(NewUidPersistent.fetchRequest())
+            uidDB = try self.appDelegate.moc.fetch(NewUidPersistent.fetchRequest())
         } catch let error as NSError {
             print("Could not fetch. \(error), \(error.userInfo)")
         }
@@ -107,7 +109,7 @@ extension DataLoadService {
     internal func dbLoadLastUIDs() -> [LastUidPersistent]?{
         var uidDB: [LastUidPersistent]?
         do {
-            uidDB = try viewContext.fetch(LastUidPersistent.fetchRequest())
+            uidDB = try self.appDelegate.moc.fetch(LastUidPersistent.fetchRequest())
         } catch let error as NSError {
             print("Could not fetch. \(error), \(error.userInfo)")
         }

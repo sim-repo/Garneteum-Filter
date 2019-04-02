@@ -147,6 +147,19 @@ class SubFilterSelectVC: UIViewController {
 // Waiting Indicator
 extension SubFilterSelectVC {
     
+    private func showAlert(text: String){
+        let alert = UIAlertController(title: "Ошибка", message: text, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+        self.present(alert, animated: true, completion: nil)
+    }
+    
+    @objc func internalWaitControl() {
+        if waitActivityView.isAnimating {
+            showAlert(text: "Ошибка сетевого запроса.")
+            stopWait()
+        }
+    }
+    
     private func bindWaitEvent(){
         waitContainer.frame = CGRect(x: view.center.x, y: view.center.y, width: 80, height: 80)
         waitContainer.backgroundColor = .lightGray
@@ -161,13 +174,15 @@ extension SubFilterSelectVC {
         viewModel.filterActionDelegate?.wait()
             .filter({[.enterSubFilter].contains($0.0)})
             .takeWhile({$0.1 == true})
-            .subscribe(onNext: {[weak self] res in
-                DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(2)){
-                    guard let `self` = self else {return}
-                    self.startWait()
-                }
+            .subscribe(
+                onNext: {[weak self] res in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(2)){
+                        guard let `self` = self else {return}
+                        Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(self.internalWaitControl), userInfo: nil, repeats: false)
+                        self.startWait()
+                    }
                 },
-                       onCompleted: {
+                onCompleted: {
                         self.stopWait()
             })
             .disposed(by: bag)

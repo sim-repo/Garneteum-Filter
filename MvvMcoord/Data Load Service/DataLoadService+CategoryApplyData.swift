@@ -29,19 +29,19 @@ extension DataLoadService {
         
         DispatchQueue.global(qos: .userInitiated).async {[weak self] in
             guard let `self` = self else { return }
-            self.viewContext.performAndWait {
+            self.self.appDelegate.moc.performAndWait {
                 var db1 = [SubfilterItemPersistent]()
                 for element in _subfiltersByItem {
 
                     for subfilterId in element.value {
-                        let row = SubfilterItemPersistent(entity: SubfilterItemPersistent.entity(), insertInto: self.viewContext)
+                        let row = SubfilterItemPersistent(entity: SubfilterItemPersistent.entity(), insertInto: self.appDelegate.moc)
                         row.setup(categoryId: categoryId, subfilterId: subfilterId, itemId: element.key)
                         db1.append(row)
                     }
                 }
                 var db2 = [PriceByItemPersistent]()
                 for element in _priceByItemId {
-                    let row = PriceByItemPersistent(entity: PriceByItemPersistent.entity(), insertInto: self.viewContext)
+                    let row = PriceByItemPersistent(entity: PriceByItemPersistent.entity(), insertInto: self.appDelegate.moc)
                     row.setup(categoryId: categoryId, itemId: element.key, price: element.value)
                     db2.append(row)
                 }
@@ -60,7 +60,7 @@ extension DataLoadService {
             request.predicate = NSPredicate(format: sql)
         }
         do {
-            db = try viewContext.fetch(request)
+            db = try self.appDelegate.moc.fetch(request)
         } catch let error as NSError {
             print("Could not fetch. \(error), \(error.userInfo)")
         }
@@ -76,7 +76,7 @@ extension DataLoadService {
             request.predicate = NSPredicate(format: sql)
         }
         do {
-            db = try viewContext.fetch(request)
+            db = try self.appDelegate.moc.fetch(request)
         } catch let error as NSError {
             print("Could not fetch. \(error), \(error.userInfo)")
         }
@@ -89,12 +89,12 @@ extension DataLoadService {
         let res1 = dbLoadSubfiltersItems(sql: "categoryId == \(categoryId)")
         guard let _res1 = res1 else { return }
         for element in _res1 {
-            viewContext.delete(element)
+            self.appDelegate.moc.delete(element)
         }
         let res2 = dbLoadPriceByItem(sql: "categoryId == \(categoryId)")
         guard let _res2 = res2 else { return }
         for element in _res2 {
-            viewContext.delete(element)
+            self.appDelegate.moc.delete(element)
         }
         appDelegate.saveContext()
     }

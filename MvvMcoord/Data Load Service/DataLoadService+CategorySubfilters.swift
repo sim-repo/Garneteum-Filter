@@ -10,7 +10,8 @@ extension DataLoadService {
         guard let _res = res,
             _res.count > 0
             else {
-                self.emitCategoryFilters(sql: "categoryId == \(categoryId) || cross == 1")
+                //self.emitCategoryFilters(sql: "categoryId == \(categoryId) || cross == 1")
+                self.emitCategoryFilters(sql: "categoryId == \(categoryId)")
                 self.emitCategorySubfilters(sql: "categoryId == \(categoryId)")
                 self.setupApplyFromDB(sql: "categoryId == \(categoryId)")
                 return
@@ -30,7 +31,8 @@ extension DataLoadService {
         }
         self.appDelegate.saveContext()
         self.emitCategorySubfilters(sql: "categoryId == \(categoryId)")
-        self.emitCategoryFilters(sql: "categoryId == \(categoryId) || cross == 1")
+        self.emitCategoryFilters(sql: "categoryId == \(categoryId)")
+        //self.emitCategoryFilters(sql: "categoryId == \(categoryId) || cross == 1")
     }
     
     
@@ -59,16 +61,16 @@ extension DataLoadService {
         
         DispatchQueue.global(qos: .userInitiated).async {[weak self] in
             guard let `self` = self else { return }
-            self.viewContext.performAndWait {
+            self.appDelegate.moc.performAndWait {
                 var filtersDB = [FilterPersistent]()
                 for element in _filters {
-                    let filterDB = FilterPersistent(entity: FilterPersistent.entity(), insertInto: self.viewContext)
+                    let filterDB = FilterPersistent(entity: FilterPersistent.entity(), insertInto: self.appDelegate.moc)
                     filterDB.setup(filterModel: element)
                     filtersDB.append(filterDB)
                 }
                 var subfiltersDB = [SubfilterPersistent]()
                 for element in _subfilters {
-                    let subfilterDB = SubfilterPersistent(entity: SubfilterPersistent.entity(), insertInto: self.viewContext)
+                    let subfilterDB = SubfilterPersistent(entity: SubfilterPersistent.entity(), insertInto: self.appDelegate.moc)
                     subfilterDB.setup(subfilterModel: element)
                     subfiltersDB.append(subfilterDB)
                 }
@@ -86,12 +88,12 @@ extension DataLoadService {
         let res1 = dbLoadSubfilter(sql: "categoryId == \(categoryId)")
         guard let _res1 = res1 else { return }
         for element in _res1 {
-            viewContext.delete(element)
+            self.appDelegate.moc.delete(element)
         }
-        let res2 = dbLoadCrossFilter(sql: "categoryId == \(categoryId)")
+        let res2 = dbLoadCrossFilter(sql: "categoryId == \(categoryId)") // ?????????
         guard let _res2 = res2 else { return }
         for element in _res2 {
-            viewContext.delete(element)
+            self.appDelegate.moc.delete(element)
         }
         appDelegate.saveContext()
     }
